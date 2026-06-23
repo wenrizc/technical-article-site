@@ -1,0 +1,33 @@
+---
+import { formatDate, type ArticleSummary } from "@/lib/articles";
+
+interface Props {
+  articles: ArticleSummary[];
+}
+
+const { articles } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<div class="article-list">
+  {
+    articles.map((article) => (
+      <article class="article-row">
+        <div class="article-row__meta">
+          <span>{article.source}</span>
+          {formatDate(article) && <time datetime={article.collected_at || ""}>{formatDate(article)}</time>}
+        </div>
+          <h2><a href={`${base}articles/${article.slug}/`}>{article.title}</a></h2>
+        {article.summary && <p>{article.summary}</p>}
+        <div class="article-row__footer">
+          <div class="tags">
+            {(article.tags || []).slice(0, 5).map((tag) => (
+              <a href={`${base}tags/${encodeURIComponent(tag)}/`}>{tag}</a>
+            ))}
+          </div>
+          <a class="source-link" href={article.url} target="_blank" rel="noreferrer">原文</a>
+        </div>
+      </article>
+    ))
+  }
+</div>

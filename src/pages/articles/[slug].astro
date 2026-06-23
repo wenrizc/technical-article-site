@@ -1,0 +1,56 @@
+---
+import { marked } from "marked";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { formatDate, getAllArticles, getArticle } from "@/lib/articles";
+
+export async function getStaticPaths() {
+  const articles = await getAllArticles();
+  return articles.map((article) => ({
+    params: { slug: article.slug },
+    props: { summary: article },
+  }));
+}
+
+const { summary } = Astro.props;
+const article = await getArticle(summary.slug);
+const body = article.content_markdown || article.markdown || "";
+const html = body ? marked.parse(body, { async: false }) : "";
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title={article.title} description={article.summary || article.recommendation_reason || ""}>
+  <article class="detail">
+    <header class="detail__header">
+      <div class="article-row__meta">
+        <span>{article.source}</span>
+        {formatDate(article) && <time datetime={article.collected_at || ""}>{formatDate(article)}</time>}
+      </div>
+      <h1>{article.title}</h1>
+      {article.summary && <p class="lead">{article.summary}</p>}
+      <div class="detail__actions">
+        <a class="button" href={article.url} target="_blank" rel="noreferrer">阅读原文</a>
+      </div>
+      <div class="tags">
+        {(article.tags || []).map((tag) => <a href={`${base}tags/${encodeURIComponent(tag)}/`}>{tag}</a>)}
+      </div>
+    </header>
+
+    {article.recommendation_reason && (
+      <section class="note">
+        <h2>推荐理由</h2>
+        <p>{article.recommendation_reason}</p>
+      </section>
+    )}
+
+    {
+      body ? (
+        <section class="prose" set:html={html} />
+      ) : (
+        <section class="note">
+          <h2>正文</h2>
+          <p>该文章来源当前配置为仅展示摘要，请前往原站阅读全文。</p>
+        </section>
+      )
+    }
+  </article>
+</BaseLayout>

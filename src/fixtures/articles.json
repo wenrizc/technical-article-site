@@ -1,0 +1,46 @@
+[
+  {
+    "id": 1,
+    "slug": "queue-latency-debugging",
+    "title": "一次队列延迟问题的定位与治理",
+    "url": "https://example.com/articles/queue-latency-debugging",
+    "source": "Example Engineering",
+    "publish_policy": "full_content",
+    "collected_at": "2026-06-22T08:30:00Z",
+    "created_at": "2026-06-22T08:30:00Z",
+    "updated_at": "2026-06-22T08:30:00Z",
+    "summary": "文章复盘了生产队列延迟升高的排查过程，覆盖指标拆解、消费者并发、重试放大和容量治理。",
+    "tags": ["Reliability", "Queue", "Observability"],
+    "recommendation_reason": "具备完整问题背景、定位路径和可迁移的治理方法，适合做稳定性实践参考。",
+    "dimensions": {
+      "工程价值": "high",
+      "技术深度": "high",
+      "原创性": "medium",
+      "可复用性": "high",
+      "可读性": "high"
+    },
+    "content_markdown": "## 背景\n\n一次发布后，异步任务队列的 P95 延迟从 2 分钟升高到 18 分钟。\n\n## 定位\n\n团队先把端到端延迟拆成入队等待、执行耗时和重试等待三段，再按任务类型聚合。最终发现少量任务失败后触发指数重试，挤占了正常任务的消费窗口。\n\n## 治理\n\n- 为失败任务设置独立重试队列。\n- 对消费者增加基于任务类型的并发隔离。\n- 在监控中加入队列年龄和重试放大率。\n\n## 结果\n\n上线后 P95 延迟回落到 3 分钟以内，峰值期间也能保持稳定。"
+  },
+  {
+    "id": 2,
+    "slug": "database-migration-playbook",
+    "title": "大型数据库迁移的发布手册",
+    "url": "https://example.com/articles/database-migration-playbook",
+    "source": "Architecture Notes",
+    "publish_policy": "summary_only",
+    "collected_at": "2026-06-21T12:00:00Z",
+    "created_at": "2026-06-21T12:00:00Z",
+    "updated_at": "2026-06-21T12:00:00Z",
+    "summary": "文章总结了大表结构迁移的分阶段策略，包括影子字段、双写校验、回滚窗口和数据一致性审计。",
+    "tags": ["Database", "Migration", "Architecture"],
+    "recommendation_reason": "迁移步骤清晰，强调验证和回滚，能直接转化为团队发布检查清单。",
+    "dimensions": {
+      "工程价值": "high",
+      "技术深度": "medium",
+      "原创性": "medium",
+      "可复用性": "high",
+      "可读性": "high"
+    },
+    "content_markdown": null
+  }
+]

@@ -1,0 +1,81 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="搜索" description="搜索已收录的技术文章">
+  <section class="page-head">
+    <div>
+      <h1>搜索</h1>
+      <p>按标题、摘要、标签、推荐理由和正文检索文章。</p>
+    </div>
+  </section>
+
+  <section class="search-panel">
+    <label class="search-box">
+      <span>关键词</span>
+      <input id="search-input" type="search" autocomplete="off" placeholder="输入关键词" />
+    </label>
+    <div id="search-status" class="search-status">请输入关键词开始搜索。</div>
+    <div id="search-results" class="search-results"></div>
+  </section>
+
+  <script>
+    const input = document.querySelector("#search-input");
+    const status = document.querySelector("#search-status");
+    const results = document.querySelector("#search-results");
+    const base = import.meta.env.BASE_URL;
+
+    let pagefind;
+    let timer;
+
+    async function loadPagefind() {
+      if (pagefind) return pagefind;
+      if (!window.pagefind) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = `${base}pagefind/pagefind.js`;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+      pagefind = window.pagefind;
+      return pagefind;
+    }
+
+    function renderIdle(message) {
+      status.textContent = message;
+      results.innerHTML = "";
+    }
+
+    async function search(query) {
+      const term = query.trim();
+      if (!term) {
+        renderIdle("请输入关键词开始搜索。");
+        return;
+      }
+
+      status.textContent = "搜索中...";
+      const pf = await loadPagefind();
+      const search = await pf.search(term);
+      const items = await Promise.all(search.results.slice(0, 30).map((item) => item.data()));
+
+      status.textContent = `找到 ${search.results.length} 个结果`;
+      results.innerHTML = items
+        .map(
+          (item) => `
+            <article class="search-result">
+              <h2><a href="${item.url}">${item.meta.title || item.url}</a></h2>
+              ${item.excerpt ? `<p>${item.excerpt}</p>` : ""}
+            </article>
+          `,
+        )
+        .join("");
+    }
+
+    input?.addEventListener("input", (event) => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => search(event.target.value), 180);
+    });
+  </script>
+</BaseLayout>

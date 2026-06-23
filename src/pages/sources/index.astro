@@ -1,0 +1,26 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getAllArticles, uniqueSources } from "@/lib/articles";
+
+const articles = await getAllArticles();
+const sources = uniqueSources(articles);
+---
+
+<BaseLayout title="来源">
+  <section class="page-head">
+    <div>
+      <h1>来源</h1>
+      <p>按文章来源浏览收录情况。</p>
+    </div>
+  </section>
+  <div class="source-grid">
+    {
+      sources.map((source) => (
+        <section>
+          <h2>{source}</h2>
+          <p>{articles.filter((article) => article.source === source).length} 篇文章</p>
+        </section>
+      ))
+    }
+  </div>
+</BaseLayout>
