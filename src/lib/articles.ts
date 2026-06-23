@@ -10,6 +10,7 @@ export interface ArticleSummary {
   url: string;
   source: string;
   publish_policy?: "full_content" | "summary_only";
+  published_at?: string | null;
   collected_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -76,7 +77,7 @@ export async function getArticle(slug: string): Promise<ArticleDetail> {
 }
 
 export function articleDate(article: ArticleSummary): Date | null {
-  const value = article.collected_at || article.updated_at || article.created_at;
+  const value = article.published_at || article.collected_at || article.updated_at || article.created_at;
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;

@@ -23,7 +23,7 @@ const base = import.meta.env.BASE_URL;
     <header class="detail__header">
       <div class="article-row__meta">
         <span>{article.source}</span>
-        {formatDate(article) && <time datetime={article.collected_at || ""}>{formatDate(article)}</time>}
+        {formatDate(article) && <time datetime={article.published_at || article.collected_at || ""}>{formatDate(article)}</time>}
       </div>
       <h1>{article.title}</h1>
       {article.summary && <p class="lead">{article.summary}</p>}

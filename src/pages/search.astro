@@ -20,17 +20,25 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
   </section>
 
   <script>
-    const input = document.querySelector("#search-input");
-    const status = document.querySelector("#search-status");
-    const results = document.querySelector("#search-results");
-    const base = import.meta.env.BASE_URL;
+    type PagefindItem = {
+      data: () => Promise<{ url: string; excerpt?: string; meta: { title?: string } }>;
+    };
+    type Pagefind = {
+      search: (term: string) => Promise<{ results: PagefindItem[] }>;
+    };
 
-    let pagefind;
-    let timer;
+    const input = document.querySelector<HTMLInputElement>("#search-input");
+    const status = document.querySelector<HTMLElement>("#search-status");
+    const results = document.querySelector<HTMLElement>("#search-results");
+    const base = import.meta.env.BASE_URL;
+    const pagefindWindow = window as Window & { pagefind?: Pagefind };
+
+    let pagefind: Pagefind | undefined;
+    let timer: number | undefined;
 
     async function loadPagefind() {
       if (pagefind) return pagefind;
-      if (!window.pagefind) {
+      if (!pagefindWindow.pagefind) {
         await new Promise((resolve, reject) => {
           const script = document.createElement("script");
           script.src = `${base}pagefind/pagefind.js`;
@@ -39,16 +47,21 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
           document.head.appendChild(script);
         });
       }
-      pagefind = window.pagefind;
+      pagefind = pagefindWindow.pagefind;
+      if (!pagefind) {
+        throw new Error("Pagefind failed to load");
+      }
       return pagefind;
     }
 
-    function renderIdle(message) {
+    function renderIdle(message: string) {
+      if (!status || !results) return;
       status.textContent = message;
       results.innerHTML = "";
     }
 
-    async function search(query) {
+    async function search(query: string) {
+      if (!status || !results) return;
       const term = query.trim();
       if (!term) {
         renderIdle("请输入关键词开始搜索。");
@@ -63,7 +76,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       status.textContent = `找到 ${search.results.length} 个结果`;
       results.innerHTML = items
         .map(
-          (item) => `
+          (item: { url: string; excerpt?: string; meta: { title?: string } }) => `
             <article class="search-result">
               <h2><a href="${item.url}">${item.meta.title || item.url}</a></h2>
               ${item.excerpt ? `<p>${item.excerpt}</p>` : ""}
@@ -74,8 +87,10 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     }
 
     input?.addEventListener("input", (event) => {
+      const target = event.currentTarget as HTMLInputElement | null;
+      if (!target) return;
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => search(event.target.value), 180);
+      timer = window.setTimeout(() => search(target.value), 180);
     });
   </script>
 </BaseLayout>
