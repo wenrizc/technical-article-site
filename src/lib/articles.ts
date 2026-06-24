@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export type Level = "high" | "medium" | "low";
-export type PublishPolicy = "full_content" | "summary_only";
 export type ContentType =
   | "technical_article"
   | "engineering_case"
@@ -31,8 +30,6 @@ export interface ArticleSummary {
   url: string;
   source: string;
   source_name?: string;
-  publish_policy?: PublishPolicy;
-  source_publish_policy?: PublishPolicy;
   published_at?: string | null;
   collected_at?: string | null;
   created_at?: string | null;
@@ -112,13 +109,10 @@ export async function getArticle(slug: string): Promise<ArticleDetail> {
 
 function normalizeArticle<T extends ArticleSummary>(article: T): T {
   const source = article.source || article.source_name || "";
-  const publishPolicy = article.publish_policy || article.source_publish_policy;
   return {
     ...article,
     source,
     source_name: article.source_name || source,
-    publish_policy: publishPolicy,
-    source_publish_policy: article.source_publish_policy || publishPolicy,
   };
 }
 
