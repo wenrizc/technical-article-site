@@ -17,6 +17,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     </label>
     <div id="search-status" class="search-status">请输入关键词开始搜索。</div>
     <div id="search-results" class="search-results"></div>
+    <nav id="search-pagination" class="pagination" aria-label="搜索结果分页" hidden></nav>
   </section>
 
   <script>
@@ -30,11 +31,15 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     const input = document.querySelector<HTMLInputElement>("#search-input");
     const status = document.querySelector<HTMLElement>("#search-status");
     const results = document.querySelector<HTMLElement>("#search-results");
+    const pagination = document.querySelector<HTMLElement>("#search-pagination");
     const base = import.meta.env.BASE_URL;
+    const pageSize = 100;
 
     let pagefindPromise: Promise<PagefindModule> | undefined;
     let timer: number | undefined;
     let activeSearch = 0;
+    let activeResults: PagefindItem[] = [];
+    let activePage = 1;
 
     async function loadPagefind() {
       if (!pagefindPromise) {
@@ -50,6 +55,10 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       if (!status || !results) return;
       status.textContent = message;
       results.innerHTML = "";
+      if (pagination) {
+        pagination.hidden = true;
+        pagination.innerHTML = "";
+      }
     }
 
     function escapeHtml(value: string) {
@@ -63,6 +72,39 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
         };
         return entities[char] || char;
       });
+    }
+
+    async function renderResults(searchId: number) {
+      if (!status || !results) return;
+      const totalPages = Math.max(Math.ceil(activeResults.length / pageSize), 1);
+      activePage = Math.min(Math.max(activePage, 1), totalPages);
+      const start = (activePage - 1) * pageSize;
+      const items = await Promise.all(activeResults.slice(start, start + pageSize).map((item) => item.data()));
+      if (searchId !== activeSearch) return;
+
+      status.textContent = activeResults.length ? `找到 ${activeResults.length} 个结果` : "没有找到结果。";
+      results.innerHTML = items
+        .map(
+          (item: { url: string; excerpt?: string; meta: { title?: string } }) => `
+            <article class="search-result">
+              <h2><a href="${escapeHtml(item.url)}">${escapeHtml(item.meta.title || item.url)}</a></h2>
+              ${item.excerpt ? `<p>${item.excerpt}</p>` : ""}
+            </article>
+          `,
+        )
+        .join("");
+
+      if (!pagination || totalPages <= 1) {
+        if (pagination) pagination.hidden = true;
+        return;
+      }
+
+      pagination.hidden = false;
+      pagination.innerHTML = `
+        <button type="button" data-search-prev ${activePage === 1 ? "disabled" : ""}>上一页</button>
+        <span>第 ${activePage} / ${totalPages} 页</span>
+        <button type="button" data-search-next ${activePage === totalPages ? "disabled" : ""}>下一页</button>
+      `;
     }
 
     async function search(query: string) {
@@ -82,26 +124,24 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
         const found = await pf.search(term);
         if (searchId !== activeSearch) return;
 
-        const items = await Promise.all(found.results.slice(0, 10).map((item) => item.data()));
-        if (searchId !== activeSearch) return;
-
-        status.textContent = found.results.length ? `找到 ${found.results.length} 个结果` : "没有找到结果。";
-        results.innerHTML = items
-          .map(
-            (item: { url: string; excerpt?: string; meta: { title?: string } }) => `
-              <article class="search-result">
-                <h2><a href="${escapeHtml(item.url)}">${escapeHtml(item.meta.title || item.url)}</a></h2>
-                ${item.excerpt ? `<p>${item.excerpt}</p>` : ""}
-              </article>
-            `,
-          )
-          .join("");
+        activeResults = found.results;
+        activePage = 1;
+        await renderResults(searchId);
       } catch (error) {
         if (searchId !== activeSearch) return;
         console.error(error);
         renderIdle("搜索索引暂不可用，请先重新构建静态站。");
       }
     }
+
+    pagination?.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target.matches("[data-search-prev]")) activePage -= 1;
+      if (target.matches("[data-search-next]")) activePage += 1;
+      void renderResults(activeSearch);
+      input?.scrollIntoView({ block: "start" });
+    });
 
     input?.addEventListener("input", (event) => {
       const target = event.currentTarget as HTMLInputElement | null;

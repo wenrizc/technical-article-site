@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "clean": "rm -rf dist",
     "dev": "astro dev --host 0.0.0.0",
+    "prebuild": "npm run clean",
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview --host 0.0.0.0",
     "check": "astro check"
