@@ -29,6 +29,7 @@ jobs:
       - run: npm run build
         env:
           TAC_API_BASE_URL: ${{ secrets.TAC_API_BASE_URL }}
+          TAC_API_STRICT: "true"
           SITE_URL: ${{ vars.SITE_URL }}
           BASE_PATH: ${{ vars.BASE_PATH }}
       - uses: actions/configure-pages@v5
