@@ -54,4 +54,4 @@ npm run preview
 - Variable: `SITE_URL`
 - Variable: `BASE_PATH`，项目页通常是 `/<repo-name>/`，用户根站或自定义域名可设为 `/`
 
-`.github/workflows/pages.yml` 会在每天 UTC 22:20 定时构建并部署，也支持手动触发。
+`.github/workflows/pages.yml` 会在每天 UTC 00:00（北京时间 08:00）定时构建并部署，也支持手动触发。
