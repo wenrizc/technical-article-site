@@ -1,12 +1,26 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { contentTypeLabel, formatDate, getAllArticles } from "@/lib/articles";
+
+const articles = await getAllArticles();
+const searchPayload = articles.map((article) => ({
+  title: article.title,
+  url: article.url,
+  source: article.source,
+  published_at: formatDate(article),
+  content_type: article.content_type ? contentTypeLabel(article.content_type) : "",
+  summary: article.summary || "",
+  recommendation_reason: article.recommendation_reason || "",
+  tags: article.tags || [],
+}));
+const searchJson = JSON.stringify(searchPayload).replace(/</g, "\\u003c");
 ---
 
 <BaseLayout title="搜索" description="搜索已收录的技术与成长内容">
   <section class="page-head">
     <div>
       <h1>搜索</h1>
-      <p>按标题、摘要、标签、推荐理由和正文检索内容。</p>
+      <p>按标题、摘要、标签和推荐理由检索内容。</p>
     </div>
   </section>
 
@@ -20,36 +34,38 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     <nav id="search-pagination" class="pagination" aria-label="搜索结果分页" hidden></nav>
   </section>
 
+  <script is:inline type="application/json" id="article-search-data" set:html={searchJson} />
+
   <script>
-    type PagefindItem = {
-      data: () => Promise<{ url: string; excerpt?: string; meta: { title?: string } }>;
+    type SearchArticle = {
+      title: string;
+      url: string;
+      source: string;
+      published_at: string;
+      content_type: string;
+      summary: string;
+      recommendation_reason: string;
+      tags: string[];
     };
-    type PagefindModule = {
-      search: (term: string) => Promise<{ results: PagefindItem[] }>;
+
+    type SearchResult = {
+      article: SearchArticle;
+      excerpt: string;
+      score: number;
     };
 
     const input = document.querySelector<HTMLInputElement>("#search-input");
     const status = document.querySelector<HTMLElement>("#search-status");
     const results = document.querySelector<HTMLElement>("#search-results");
     const pagination = document.querySelector<HTMLElement>("#search-pagination");
-    const base = import.meta.env.BASE_URL;
+    const dataNode = document.querySelector<HTMLScriptElement>("#article-search-data");
+    const articles = JSON.parse(dataNode?.textContent || "[]") as SearchArticle[];
     const pageSize = 100;
 
-    let pagefindPromise: Promise<PagefindModule> | undefined;
     let timer: number | undefined;
     let activeSearch = 0;
-    let activeResults: PagefindItem[] = [];
+    let activeResults: SearchResult[] = [];
     let activePage = 1;
-
-    async function loadPagefind() {
-      if (!pagefindPromise) {
-        const dynamicImport = new Function("path", "return import(path)") as (
-          path: string,
-        ) => Promise<PagefindModule>;
-        pagefindPromise = dynamicImport(`${base}pagefind/pagefind.js`);
-      }
-      return pagefindPromise;
-    }
 
     function renderIdle(message: string) {
       if (!status || !results) return;
@@ -74,21 +90,97 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       });
     }
 
-    async function renderResults(searchId: number) {
+    function normalize(value: string) {
+      return value.toLocaleLowerCase("zh-CN");
+    }
+
+    function textIncludes(value: string, term: string) {
+      return normalize(value).includes(term);
+    }
+
+    function excerptFor(article: SearchArticle, term: string) {
+      const fields = [article.summary, article.recommendation_reason, article.title, article.tags.join(" ")].filter(
+        Boolean,
+      );
+      const source = fields.find((field) => textIncludes(field, term)) || article.summary || article.recommendation_reason;
+      if (!source) return "";
+
+      const normalizedSource = normalize(source);
+      const index = normalizedSource.indexOf(term);
+      if (index < 0) return source.length > 140 ? `${source.slice(0, 140)}...` : source;
+
+      const start = Math.max(index - 48, 0);
+      const end = Math.min(index + term.length + 92, source.length);
+      return `${start > 0 ? "..." : ""}${source.slice(start, end)}${end < source.length ? "..." : ""}`;
+    }
+
+    function searchArticles(query: string) {
+      const terms = query
+        .split(/\s+/)
+        .map((term) => normalize(term.trim()))
+        .filter(Boolean);
+      if (!terms.length) return [];
+
+      return articles
+        .map((article) => {
+          const fields = {
+            title: article.title,
+            summary: article.summary,
+            tags: article.tags.join(" "),
+            recommendation_reason: article.recommendation_reason,
+          };
+          let score = 0;
+
+          for (const term of terms) {
+            const matched =
+              textIncludes(fields.title, term) ||
+              textIncludes(fields.summary, term) ||
+              textIncludes(fields.tags, term) ||
+              textIncludes(fields.recommendation_reason, term);
+            if (!matched) return null;
+
+            if (textIncludes(fields.title, term)) score += 8;
+            if (textIncludes(fields.tags, term)) score += 5;
+            if (textIncludes(fields.summary, term)) score += 3;
+            if (textIncludes(fields.recommendation_reason, term)) score += 2;
+          }
+
+          return {
+            article,
+            excerpt: excerptFor(article, terms[0]),
+            score,
+          };
+        })
+        .filter((item): item is SearchResult => Boolean(item))
+        .sort((a, b) => b.score - a.score || a.article.title.localeCompare(b.article.title, "zh-CN"));
+    }
+
+    function renderResults(searchId: number) {
       if (!status || !results) return;
       const totalPages = Math.max(Math.ceil(activeResults.length / pageSize), 1);
       activePage = Math.min(Math.max(activePage, 1), totalPages);
       const start = (activePage - 1) * pageSize;
-      const items = await Promise.all(activeResults.slice(start, start + pageSize).map((item) => item.data()));
+      const items = activeResults.slice(start, start + pageSize);
       if (searchId !== activeSearch) return;
 
       status.textContent = activeResults.length ? `找到 ${activeResults.length} 个结果` : "没有找到结果。";
       results.innerHTML = items
         .map(
-          (item: { url: string; excerpt?: string; meta: { title?: string } }) => `
+          ({ article, excerpt }) => `
             <article class="search-result">
-              <h2><a href="${escapeHtml(item.url)}">${escapeHtml(item.meta.title || item.url)}</a></h2>
-              ${item.excerpt ? `<p>${item.excerpt}</p>` : ""}
+              <div class="article-row__meta">
+                ${[article.content_type, article.source, article.published_at]
+                  .filter(Boolean)
+                  .map((item) => `<span>${escapeHtml(item)}</span>`)
+                  .join("")}
+              </div>
+              <h2><a href="${escapeHtml(article.url)}" target="_blank" rel="noreferrer">${escapeHtml(article.title)}</a></h2>
+              ${excerpt ? `<p>${escapeHtml(excerpt)}</p>` : ""}
+              ${
+                article.tags.length
+                  ? `<div class="tags">${article.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>`
+                  : ""
+              }
             </article>
           `,
         )
@@ -107,7 +199,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       `;
     }
 
-    async function search(query: string) {
+    function search(query: string) {
       if (!status || !results) return;
       const searchId = ++activeSearch;
       const term = query.trim();
@@ -119,19 +211,9 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       status.textContent = "搜索中...";
       results.innerHTML = "";
 
-      try {
-        const pf = await loadPagefind();
-        const found = await pf.search(term);
-        if (searchId !== activeSearch) return;
-
-        activeResults = found.results;
-        activePage = 1;
-        await renderResults(searchId);
-      } catch (error) {
-        if (searchId !== activeSearch) return;
-        console.error(error);
-        renderIdle("搜索索引暂不可用，请先重新构建静态站。");
-      }
+      activeResults = searchArticles(term);
+      activePage = 1;
+      renderResults(searchId);
     }
 
     pagination?.addEventListener("click", (event) => {
@@ -139,7 +221,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       if (!target) return;
       if (target.matches("[data-search-prev]")) activePage -= 1;
       if (target.matches("[data-search-next]")) activePage += 1;
-      void renderResults(activeSearch);
+      renderResults(activeSearch);
       input?.scrollIntoView({ block: "start" });
     });
 

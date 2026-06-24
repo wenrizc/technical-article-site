@@ -9,18 +9,6 @@ interface Props {
 const { articles, pageSize = 100 } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const listId = `article-list-${Math.random().toString(36).slice(2)}`;
-const articlePayload = articles.map((article, index) => ({
-  index,
-  title: article.title,
-  url: article.url,
-  source: article.source,
-  published_at: formatDate(article),
-  content_type: article.content_type ? contentTypeLabel(article.content_type) : "",
-  summary: article.summary || "",
-  recommendation_reason: article.recommendation_reason || "",
-  tags: article.tags || [],
-  dimensions: article.dimensions || {},
-}));
 ---
 
 <section
@@ -40,9 +28,9 @@ const articlePayload = articles.map((article, index) => ({
           {formatDate(article) && <time datetime={article.published_at || ""}>{formatDate(article)}</time>}
         </div>
         <h2>
-          <button class="article-title-button" type="button" data-article-trigger data-index={index}>
+          <a class="article-title-link" href={article.url} target="_blank" rel="noreferrer">
             {article.title}
-          </button>
+          </a>
         </h2>
         {article.summary && <p>{article.summary}</p>}
         {article.recommendation_reason && <p class="article-row__reason">{article.recommendation_reason}</p>}
@@ -52,88 +40,15 @@ const articlePayload = articles.map((article, index) => ({
               <a href={`${base}tags/${encodeURIComponent(tag)}/`}>{tag}</a>
             ))}
           </div>
-          <div class="article-row__actions">
-            <button class="source-link article-detail-button" type="button" data-article-trigger data-index={index}>
-              详情
-            </button>
-            <a class="source-link" href={article.url} target="_blank" rel="noreferrer">原文</a>
-          </div>
         </div>
       </article>
       ))
     }
   </div>
   <nav class="pagination" aria-label="文章分页" data-pagination hidden></nav>
-  <script is:inline type="application/json" data-article-data set:html={JSON.stringify(articlePayload)} />
 </section>
 
-<dialog class="article-modal" data-article-modal>
-  <div class="article-modal__body">
-    <div class="article-modal__top">
-      <div class="article-row__meta" data-modal-meta></div>
-      <button class="modal-close" type="button" data-modal-close aria-label="关闭">×</button>
-    </div>
-    <h2 data-modal-title></h2>
-    <section class="modal-section" data-modal-summary-section>
-      <h3>导读</h3>
-      <p data-modal-summary></p>
-    </section>
-    <section class="modal-section" data-modal-reason-section>
-      <h3>推荐理由</h3>
-      <p data-modal-reason></p>
-    </section>
-    <section class="modal-section" data-modal-dimensions-section>
-      <h3>评估维度</h3>
-      <dl class="dimension-list" data-modal-dimensions></dl>
-    </section>
-    <div class="tags" data-modal-tags></div>
-    <div class="article-modal__actions">
-      <a class="button" href="#" target="_blank" rel="noreferrer" data-modal-url>打开原文</a>
-      <button class="button button--ghost" type="button" data-modal-close>关闭</button>
-    </div>
-  </div>
-</dialog>
-
 <script>
-  type ArticlePayload = {
-    index: number;
-    title: string;
-    url: string;
-    source: string;
-    published_at: string;
-    content_type: string;
-    summary: string;
-    recommendation_reason: string;
-    tags: string[];
-    dimensions: Record<string, string>;
-  };
-
-  const dimensionLabels: Record<string, string> = {
-    depth: "技术深度",
-    value: "实践价值",
-    novelty: "新颖性",
-    readability: "可读性",
-  };
-
-  const levelLabels: Record<string, string> = {
-    high: "高",
-    medium: "中",
-    low: "低",
-  };
-
-  function escapeHtml(value: string) {
-    return value.replace(/[&<>"']/g, (char) => {
-      const entities: Record<string, string> = {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      };
-      return entities[char] || char;
-    });
-  }
-
   function pageFromUrl(totalPages: number) {
     const params = new URLSearchParams(window.location.search);
     const value = Number(params.get("page") || "1");
@@ -191,75 +106,7 @@ const articlePayload = articles.map((article, index) => ({
     render();
   }
 
-  function setupModal(browser: HTMLElement) {
-    const dataNode = browser.querySelector<HTMLScriptElement>("[data-article-data]");
-    const modal = document.querySelector<HTMLDialogElement>("[data-article-modal]");
-    if (!dataNode || !modal) return;
-
-    const activeModal = modal;
-    const articles = JSON.parse(dataNode.textContent || "[]") as ArticlePayload[];
-    const meta = activeModal.querySelector<HTMLElement>("[data-modal-meta]");
-    const title = activeModal.querySelector<HTMLElement>("[data-modal-title]");
-    const summary = activeModal.querySelector<HTMLElement>("[data-modal-summary]");
-    const summarySection = activeModal.querySelector<HTMLElement>("[data-modal-summary-section]");
-    const reason = activeModal.querySelector<HTMLElement>("[data-modal-reason]");
-    const reasonSection = activeModal.querySelector<HTMLElement>("[data-modal-reason-section]");
-    const dimensions = activeModal.querySelector<HTMLElement>("[data-modal-dimensions]");
-    const dimensionsSection = activeModal.querySelector<HTMLElement>("[data-modal-dimensions-section]");
-    const tags = activeModal.querySelector<HTMLElement>("[data-modal-tags]");
-    const url = activeModal.querySelector<HTMLAnchorElement>("[data-modal-url]");
-
-    function openArticle(index: number) {
-      const article = articles[index];
-      if (!article) return;
-
-      if (meta) {
-        meta.innerHTML = [article.content_type, article.source, article.published_at]
-          .filter(Boolean)
-          .map((item) => `<span>${escapeHtml(item)}</span>`)
-          .join("");
-      }
-      if (title) title.textContent = article.title;
-      if (summary) summary.textContent = article.summary;
-      if (summarySection) summarySection.hidden = !article.summary;
-      if (reason) reason.textContent = article.recommendation_reason;
-      if (reasonSection) reasonSection.hidden = !article.recommendation_reason;
-      if (dimensions && dimensionsSection) {
-        const entries = Object.entries(article.dimensions || {});
-        dimensionsSection.hidden = entries.length === 0;
-        dimensions.innerHTML = entries
-          .map(([key, value]) => `
-            <div>
-              <dt>${escapeHtml(dimensionLabels[key] || key)}</dt>
-              <dd>${escapeHtml(levelLabels[value] || value)}</dd>
-            </div>
-          `)
-          .join("");
-      }
-      if (tags) {
-        tags.innerHTML = article.tags
-          .map((tag) => `<a href="${import.meta.env.BASE_URL}tags/${encodeURIComponent(tag)}/">${escapeHtml(tag)}</a>`)
-          .join("");
-      }
-      if (url) url.href = article.url;
-      activeModal.showModal();
-    }
-
-    browser.addEventListener("click", (event) => {
-      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-article-trigger]");
-      if (!target) return;
-      openArticle(Number(target.dataset.index));
-    });
-
-    activeModal.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.matches("[data-modal-close]")) activeModal.close();
-      if (target === activeModal) activeModal.close();
-    });
-  }
-
   document.querySelectorAll<HTMLElement>("[data-article-browser]").forEach((browser) => {
     setupPagination(browser);
-    setupModal(browser);
   });
 </script>
