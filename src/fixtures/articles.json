@@ -10,14 +10,16 @@
     "collected_at": "2026-06-22T08:30:00Z",
     "created_at": "2026-06-22T08:30:00Z",
     "updated_at": "2026-06-22T08:30:00Z",
-    "summary": "文章复盘了生产队列延迟升高的排查过程，覆盖指标拆解、消费者并发、重试放大和容量治理。",
+    "content_type": "engineering_case",
+    "summary": "文章复盘了生产队列延迟升高的排查过程，覆盖指标拆解、重试放大和容量治理。",
     "tags": ["Reliability", "Queue", "Observability"],
     "recommendation_reason": "具备完整问题背景、定位路径和可迁移的治理方法，适合做稳定性实践参考。",
     "dimensions": {
-      "工程价值": "high",
-      "技术深度": "high",
+      "领域相关性": "high",
+      "长期价值": "high",
+      "内容深度": "high",
       "原创性": "medium",
-      "可复用性": "high",
+      "可迁移性": "high",
       "可读性": "high"
     },
     "content_markdown": "## 背景\n\n一次发布后，异步任务队列的 P95 延迟从 2 分钟升高到 18 分钟。\n\n## 定位\n\n团队先把端到端延迟拆成入队等待、执行耗时和重试等待三段，再按任务类型聚合。最终发现少量任务失败后触发指数重试，挤占了正常任务的消费窗口。\n\n## 治理\n\n- 为失败任务设置独立重试队列。\n- 对消费者增加基于任务类型的并发隔离。\n- 在监控中加入队列年龄和重试放大率。\n\n## 结果\n\n上线后 P95 延迟回落到 3 分钟以内，峰值期间也能保持稳定。"
@@ -33,16 +35,68 @@
     "collected_at": "2026-06-21T12:00:00Z",
     "created_at": "2026-06-21T12:00:00Z",
     "updated_at": "2026-06-21T12:00:00Z",
-    "summary": "文章总结了大表结构迁移的分阶段策略，包括影子字段、双写校验、回滚窗口和数据一致性审计。",
+    "content_type": "technical_article",
+    "summary": "文章总结了大表结构迁移的分阶段策略，包括影子字段、双写校验和回滚窗口。",
     "tags": ["Database", "Migration", "Architecture"],
     "recommendation_reason": "迁移步骤清晰，强调验证和回滚，能直接转化为团队发布检查清单。",
     "dimensions": {
-      "工程价值": "high",
-      "技术深度": "medium",
+      "领域相关性": "high",
+      "长期价值": "high",
+      "内容深度": "medium",
       "原创性": "medium",
-      "可复用性": "high",
+      "可迁移性": "high",
       "可读性": "high"
     },
     "content_markdown": null
+  },
+  {
+    "id": 3,
+    "slug": "query-optimizer-research-map",
+    "title": "数据库查询优化器研究脉络笔记",
+    "url": "https://example.com/articles/query-optimizer-research-map",
+    "source": "Research Notes",
+    "publish_policy": "full_content",
+    "published_at": "2026-06-16T08:00:00Z",
+    "collected_at": "2026-06-20T10:30:00Z",
+    "created_at": "2026-06-20T10:30:00Z",
+    "updated_at": "2026-06-20T10:30:00Z",
+    "content_type": "research_article",
+    "summary": "文章梳理查询优化器研究问题，比较代价模型、学习型优化器和实验评估边界。",
+    "tags": ["Database", "Query Optimizer", "Research"],
+    "recommendation_reason": "问题定义、论文依据和局限分析清晰，适合作为数据库系统研究入门参考。",
+    "dimensions": {
+      "领域相关性": "high",
+      "长期价值": "high",
+      "内容深度": "high",
+      "原创性": "medium",
+      "可迁移性": "high",
+      "可读性": "high"
+    },
+    "content_markdown": "## 研究问题\n\n查询优化器的核心问题不是枚举所有执行计划，而是在有限时间内找到足够好的计划，并能解释统计信息误差带来的风险。\n\n## 脉络\n\n传统优化器依赖代价模型和统计信息，学习型优化器尝试用模型替换部分估计环节，但会引入训练集分布和可解释性问题。\n\n## 阅读顺序\n\n先读 Volcano/Cascades，再看 cardinality estimation 的误差传播，最后比较 learned optimizer 在 benchmark 外的表现。"
+  },
+  {
+    "id": 4,
+    "slug": "computer-systems-learning-path",
+    "title": "系统方向学习路线：从课程到论文",
+    "url": "https://example.com/articles/computer-systems-learning-path",
+    "source": "Learning Log",
+    "publish_policy": "full_content",
+    "published_at": "2026-06-15T12:30:00Z",
+    "collected_at": "2026-06-19T09:15:00Z",
+    "created_at": "2026-06-19T09:15:00Z",
+    "updated_at": "2026-06-19T09:15:00Z",
+    "content_type": "learning_path",
+    "summary": "文章给出系统方向学习路线，说明 OS、网络、数据库和分布式系统的训练顺序。",
+    "tags": ["Learning Path", "Computer Systems", "Research"],
+    "recommendation_reason": "路线具体且解释阶段目标和常见误区，适合系统方向求学和自学参考。",
+    "dimensions": {
+      "领域相关性": "high",
+      "长期价值": "high",
+      "内容深度": "high",
+      "原创性": "medium",
+      "可迁移性": "high",
+      "可读性": "high"
+    },
+    "content_markdown": "## 阶段一：补基础\n\n先完成操作系统、计算机网络和数据库课程，目标是能解释资源管理、协议边界和存储模型。\n\n## 阶段二：做项目\n\n用一个小型 KV 存储、HTTP 服务器或调度器项目把接口、并发、故障和观测串起来。\n\n## 阶段三：读论文\n\n从 MapReduce、Raft、Spanner 这类经典论文开始，重点看问题设定、系统假设、实验指标和没有解决的问题。"
   }
 ]

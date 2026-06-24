@@ -133,8 +133,19 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: center;
   color: var(--muted);
   font-size: 13px;
+}
+
+.content-type {
+  border: 1px solid #b9d3ca;
+  border-radius: 999px;
+  background: #f2f8f5;
+  color: var(--accent-strong);
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .article-row h2 {

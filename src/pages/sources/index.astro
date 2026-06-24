@@ -10,7 +10,7 @@ const sources = uniqueSources(articles);
   <section class="page-head">
     <div>
       <h1>来源</h1>
-      <p>按文章来源浏览收录情况。</p>
+      <p>按来源浏览收录情况。</p>
     </div>
   </section>
   <div class="source-grid">
@@ -18,7 +18,7 @@ const sources = uniqueSources(articles);
       sources.map((source) => (
         <section>
           <h2>{source}</h2>
-          <p>{articles.filter((article) => article.source === source).length} 篇文章</p>
+          <p>{articles.filter((article) => article.source === source).length} 篇内容</p>
         </section>
       ))
     }

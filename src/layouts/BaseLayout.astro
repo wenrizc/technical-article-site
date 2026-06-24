@@ -5,10 +5,10 @@ interface Props {
 }
 
 const {
-  title = "技术文章精选",
-  description = "长期工程价值导向的技术文章索引",
+  title = "技术与成长精选",
+  description = "计算机领域长期参考价值导向的内容索引",
 } = Astro.props;
-const pageTitle = title === "技术文章精选" ? title : `${title} | 技术文章精选`;
+const pageTitle = title === "技术与成长精选" ? title : `${title} | 技术与成长精选`;
 const base = import.meta.env.BASE_URL;
 ---
 
@@ -23,9 +23,9 @@ const base = import.meta.env.BASE_URL;
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href={base}>技术文章精选</a>
+      <a class="brand" href={base}>技术与成长精选</a>
       <nav class="nav" aria-label="主导航">
-        <a href={base}>文章</a>
+        <a href={base}>内容</a>
         <a href={`${base}search/`}>搜索</a>
         <a href={`${base}tags/`}>标签</a>
         <a href={`${base}sources/`}>来源</a>
