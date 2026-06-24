@@ -117,7 +117,7 @@ function normalizeArticle<T extends ArticleSummary>(article: T): T {
 }
 
 export function articleDate(article: ArticleSummary): Date | null {
-  const value = article.published_at || article.collected_at || article.updated_at || article.created_at;
+  const value = article.published_at;
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -151,4 +151,12 @@ export function uniqueSources(articles: ArticleSummary[]): string[] {
   return Array.from(new Set(articles.map((article) => article.source).filter(Boolean))).sort(
     (a, b) => a.localeCompare(b, "zh-CN"),
   );
+}
+
+export function articlesBySource(articles: ArticleSummary[], source: string): ArticleSummary[] {
+  return articles.filter((article) => article.source === source);
+}
+
+export function sourcePath(source: string): string {
+  return encodeURIComponent(source);
 }

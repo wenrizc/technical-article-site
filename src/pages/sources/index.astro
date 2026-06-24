@@ -1,9 +1,10 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { getAllArticles, uniqueSources } from "@/lib/articles";
+import { articlesBySource, getAllArticles, sourcePath, uniqueSources } from "@/lib/articles";
 
 const articles = await getAllArticles();
 const sources = uniqueSources(articles);
+const base = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout title="来源">
@@ -16,10 +17,10 @@ const sources = uniqueSources(articles);
   <div class="source-grid">
     {
       sources.map((source) => (
-        <section>
+        <a href={`${base}sources/${sourcePath(source)}/`}>
           <h2>{source}</h2>
-          <p>{articles.filter((article) => article.source === source).length} 篇内容</p>
-        </section>
+          <p>{articlesBySource(articles, source).length} 篇内容</p>
+        </a>
       ))
     }
   </div>

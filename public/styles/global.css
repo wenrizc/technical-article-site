@@ -304,11 +304,17 @@ main {
   gap: 14px;
 }
 
-.source-grid section {
+.source-grid a {
+  display: block;
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
+}
+
+.source-grid a:hover {
+  border-color: #9fc4b7;
+  color: var(--accent);
 }
 
 .source-grid h2 {

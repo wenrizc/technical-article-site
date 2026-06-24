@@ -23,7 +23,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     type PagefindItem = {
       data: () => Promise<{ url: string; excerpt?: string; meta: { title?: string } }>;
     };
-    type Pagefind = {
+    type PagefindModule = {
       search: (term: string) => Promise<{ results: PagefindItem[] }>;
     };
 
@@ -31,27 +31,19 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     const status = document.querySelector<HTMLElement>("#search-status");
     const results = document.querySelector<HTMLElement>("#search-results");
     const base = import.meta.env.BASE_URL;
-    const pagefindWindow = window as Window & { pagefind?: Pagefind };
 
-    let pagefind: Pagefind | undefined;
+    let pagefindPromise: Promise<PagefindModule> | undefined;
     let timer: number | undefined;
+    let activeSearch = 0;
 
     async function loadPagefind() {
-      if (pagefind) return pagefind;
-      if (!pagefindWindow.pagefind) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = `${base}pagefind/pagefind.js`;
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
+      if (!pagefindPromise) {
+        const dynamicImport = new Function("path", "return import(path)") as (
+          path: string,
+        ) => Promise<PagefindModule>;
+        pagefindPromise = dynamicImport(`${base}pagefind/pagefind.js`);
       }
-      pagefind = pagefindWindow.pagefind;
-      if (!pagefind) {
-        throw new Error("Pagefind failed to load");
-      }
-      return pagefind;
+      return pagefindPromise;
     }
 
     function renderIdle(message: string) {
@@ -60,8 +52,22 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       results.innerHTML = "";
     }
 
+    function escapeHtml(value: string) {
+      return value.replace(/[&<>"']/g, (char) => {
+        const entities: Record<string, string> = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        };
+        return entities[char] || char;
+      });
+    }
+
     async function search(query: string) {
       if (!status || !results) return;
+      const searchId = ++activeSearch;
       const term = query.trim();
       if (!term) {
         renderIdle("请输入关键词开始搜索。");
@@ -69,28 +75,39 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       }
 
       status.textContent = "搜索中...";
-      const pf = await loadPagefind();
-      const search = await pf.search(term);
-      const items = await Promise.all(search.results.slice(0, 30).map((item) => item.data()));
+      results.innerHTML = "";
 
-      status.textContent = `找到 ${search.results.length} 个结果`;
-      results.innerHTML = items
-        .map(
-          (item: { url: string; excerpt?: string; meta: { title?: string } }) => `
-            <article class="search-result">
-              <h2><a href="${item.url}">${item.meta.title || item.url}</a></h2>
-              ${item.excerpt ? `<p>${item.excerpt}</p>` : ""}
-            </article>
-          `,
-        )
-        .join("");
+      try {
+        const pf = await loadPagefind();
+        const found = await pf.search(term);
+        if (searchId !== activeSearch) return;
+
+        const items = await Promise.all(found.results.slice(0, 10).map((item) => item.data()));
+        if (searchId !== activeSearch) return;
+
+        status.textContent = found.results.length ? `找到 ${found.results.length} 个结果` : "没有找到结果。";
+        results.innerHTML = items
+          .map(
+            (item: { url: string; excerpt?: string; meta: { title?: string } }) => `
+              <article class="search-result">
+                <h2><a href="${escapeHtml(item.url)}">${escapeHtml(item.meta.title || item.url)}</a></h2>
+                ${item.excerpt ? `<p>${item.excerpt}</p>` : ""}
+              </article>
+            `,
+          )
+          .join("");
+      } catch (error) {
+        if (searchId !== activeSearch) return;
+        console.error(error);
+        renderIdle("搜索索引暂不可用，请先重新构建静态站。");
+      }
     }
 
     input?.addEventListener("input", (event) => {
       const target = event.currentTarget as HTMLInputElement | null;
       if (!target) return;
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => search(target.value), 180);
+      timer = window.setTimeout(() => search(target.value), 250);
     });
   </script>
 </BaseLayout>

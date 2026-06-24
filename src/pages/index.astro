@@ -1,24 +1,16 @@
 ---
 import ArticleList from "@/components/ArticleList.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { getAllArticles, uniqueSources, uniqueTags } from "@/lib/articles";
+import { getAllArticles } from "@/lib/articles";
 
 const articles = await getAllArticles();
-const tags = uniqueTags(articles);
-const sources = uniqueSources(articles);
 ---
 
 <BaseLayout>
   <section class="page-head">
     <div>
-      <h1>技术与成长精选</h1>
-      <p>从上游精选流水线同步，面向计算机领域技术、科研与成长的内容索引。</p>
+      <h1>技术与成长</h1>
     </div>
-    <dl class="stats">
-      <div><dt>内容</dt><dd>{articles.length}</dd></div>
-      <div><dt>标签</dt><dd>{tags.length}</dd></div>
-      <div><dt>来源</dt><dd>{sources.length}</dd></div>
-    </dl>
   </section>
   <ArticleList articles={articles} />
 </BaseLayout>
