@@ -1,6 +1,6 @@
-# 技术文章静态站
+# 技术与成长精选静态站
 
-这个项目是 `technical-article-curation` 的独立展示层。构建时通过上游 FastAPI 公共接口拉取文章数据，并生成可部署到 GitHub Pages 的静态 HTML。
+这个项目是 `technical-article-curation` 的独立展示层。构建时通过上游 FastAPI 公共接口拉取技术、科研、学习路线和成长内容数据，并生成可部署到 GitHub Pages 的静态 HTML。
 
 前端方案：
 
@@ -14,11 +14,15 @@
 - `GET /api/public/index.json`
 - `GET /api/public/articles/{slug}`
 
+接口中的 `tags` 是上游词库审核通过后的正式标签；AI 原始候选标签不会直接出现在静态站标签页。
+
 通过环境变量配置上游地址：
 
 ```bash
 TAC_API_BASE_URL=http://127.0.0.1:1104
 ```
+
+当上游接口暂时不可达且 `TAC_API_STRICT` 未设为 `true` 时，构建会回退到 `src/fixtures/articles.json`，便于本地预览。部署环境建议设置 `TAC_API_STRICT=true`，让 API 异常直接暴露为构建失败。
 
 ## 本地开发
 

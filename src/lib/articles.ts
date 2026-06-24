@@ -2,6 +2,27 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export type Level = "high" | "medium" | "low";
+export type PublishPolicy = "full_content" | "summary_only";
+export type ContentType =
+  | "technical_article"
+  | "engineering_case"
+  | "research_article"
+  | "research_reflection"
+  | "learning_path"
+  | "personal_reflection"
+  | "career_experience"
+  | "tooling_note";
+
+export const contentTypeLabels: Record<ContentType, string> = {
+  technical_article: "技术文章",
+  engineering_case: "工程实践",
+  research_article: "科研议题",
+  research_reflection: "科研思考",
+  learning_path: "学习路线",
+  personal_reflection: "个人心得",
+  career_experience: "职业经验",
+  tooling_note: "工具笔记",
+};
 
 export interface ArticleSummary {
   id?: number;
@@ -9,13 +30,16 @@ export interface ArticleSummary {
   title: string;
   url: string;
   source: string;
-  publish_policy?: "full_content" | "summary_only";
+  source_name?: string;
+  publish_policy?: PublishPolicy;
+  source_publish_policy?: PublishPolicy;
   published_at?: string | null;
   collected_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  content_type?: ContentType;
   summary?: string | null;
-  tags?: string[];
+  tags?: string[]; // 后端仅返回已审核通过的正式标签。
   recommendation_reason?: string | null;
   dimensions?: Record<string, Level>;
 }
@@ -39,15 +63,23 @@ async function fetchJson<T>(path: string): Promise<T> {
     return readFixture<T>(path);
   }
   const url = `${baseUrl}${path}`;
-  const response = await fetch(url, {
-    headers: {
-      accept: "application/json",
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        accept: "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+    }
+    return (await response.json()) as T;
+  } catch (error) {
+    if (process.env.TAC_API_STRICT === "true") {
+      throw error;
+    }
+    console.warn(`Falling back to local fixtures after API fetch failed for ${url}.`);
+    return readFixture<T>(path);
   }
-  return (await response.json()) as T;
 }
 
 async function readFixture<T>(path: string): Promise<T> {
@@ -69,11 +101,25 @@ async function readFixture<T>(path: string): Promise<T> {
 }
 
 export async function getAllArticles(): Promise<ArticleSummary[]> {
-  return fetchJson<ArticleSummary[]>("/api/public/index.json");
+  const articles = await fetchJson<ArticleSummary[]>("/api/public/index.json");
+  return articles.map(normalizeArticle);
 }
 
 export async function getArticle(slug: string): Promise<ArticleDetail> {
-  return fetchJson<ArticleDetail>(`/api/public/articles/${encodeURIComponent(slug)}`);
+  const article = await fetchJson<ArticleDetail>(`/api/public/articles/${encodeURIComponent(slug)}`);
+  return normalizeArticle(article);
+}
+
+function normalizeArticle<T extends ArticleSummary>(article: T): T {
+  const source = article.source || article.source_name || "";
+  const publishPolicy = article.publish_policy || article.source_publish_policy;
+  return {
+    ...article,
+    source,
+    source_name: article.source_name || source,
+    publish_policy: publishPolicy,
+    source_publish_policy: article.source_publish_policy || publishPolicy,
+  };
 }
 
 export function articleDate(article: ArticleSummary): Date | null {
@@ -91,6 +137,10 @@ export function formatDate(article: ArticleSummary): string {
     month: "2-digit",
     day: "2-digit",
   }).format(date);
+}
+
+export function contentTypeLabel(contentType?: ContentType): string {
+  return contentType ? contentTypeLabels[contentType] : "";
 }
 
 export function uniqueTags(articles: ArticleSummary[]): string[] {
