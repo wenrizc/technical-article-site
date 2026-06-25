@@ -1,0 +1,35 @@
+---
+import ArticleList from "@/components/ArticleList.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import {
+  articlesByContentType,
+  contentTypeLabel,
+  getAllArticles,
+  uniqueContentTypes,
+  type ContentType,
+} from "@/lib/articles";
+
+export async function getStaticPaths() {
+  const articles = await getAllArticles();
+  return uniqueContentTypes(articles).map((category) => ({
+    params: { category },
+    props: { category, articles: articlesByContentType(articles, category) },
+  }));
+}
+
+const { category, articles } = Astro.props as {
+  category: ContentType;
+  articles: Awaited<ReturnType<typeof getAllArticles>>;
+};
+const label = contentTypeLabel(category);
+---
+
+<BaseLayout title={label}>
+  <section class="page-head">
+    <div>
+      <h1>{label}</h1>
+      <p>{articles.length} 篇内容</p>
+    </div>
+  </section>
+  <ArticleList articles={articles} />
+</BaseLayout>

@@ -1,0 +1,33 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import {
+  articlesByContentType,
+  contentTypeLabel,
+  contentTypePath,
+  getAllArticles,
+  uniqueContentTypes,
+} from "@/lib/articles";
+
+const articles = await getAllArticles();
+const categories = uniqueContentTypes(articles);
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="分类">
+  <section class="page-head">
+    <div>
+      <h1>分类</h1>
+      <p>按内容类型浏览技术文章、工程实践、科研议题和学习路线。</p>
+    </div>
+  </section>
+  <div class="source-grid">
+    {
+      categories.map((category) => (
+        <a href={`${base}categories/${contentTypePath(category)}/`}>
+          <h2>{contentTypeLabel(category)}</h2>
+          <p>{articlesByContentType(articles, category).length} 篇内容</p>
+        </a>
+      ))
+    }
+  </div>
+</BaseLayout>

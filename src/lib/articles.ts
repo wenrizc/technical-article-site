@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export type Level = "high" | "medium" | "low";
 export type ContentType =
   | "technical_article"
   | "engineering_case"
@@ -38,7 +37,6 @@ export interface ArticleSummary {
   summary?: string | null;
   tags?: string[]; // 后端仅返回已审核通过的正式标签。
   recommendation_reason?: string | null;
-  dimensions?: Record<string, Level>;
 }
 
 export interface ArticleDetail extends ArticleSummary {
@@ -135,6 +133,27 @@ export function formatDate(article: ArticleSummary): string {
 
 export function contentTypeLabel(contentType?: ContentType): string {
   return contentType ? contentTypeLabels[contentType] : "";
+}
+
+export function uniqueContentTypes(articles: ArticleSummary[]): ContentType[] {
+  const order = Object.keys(contentTypeLabels) as ContentType[];
+  const present = new Set(
+    articles
+      .map((article) => article.content_type)
+      .filter((contentType): contentType is ContentType => Boolean(contentType)),
+  );
+  return order.filter((contentType) => present.has(contentType));
+}
+
+export function articlesByContentType(
+  articles: ArticleSummary[],
+  contentType: ContentType,
+): ArticleSummary[] {
+  return articles.filter((article) => article.content_type === contentType);
+}
+
+export function contentTypePath(contentType: ContentType): string {
+  return encodeURIComponent(contentType);
 }
 
 export function uniqueTags(articles: ArticleSummary[]): string[] {
