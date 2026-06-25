@@ -1,5 +1,5 @@
 ---
-import { contentTypeLabel, formatDate, type ArticleSummary } from "@/lib/articles";
+import { contentTypeLabel, formatDate, tagPath, type ArticleSummary } from "@/lib/articles";
 
 interface Props {
   articles: ArticleSummary[];
@@ -37,7 +37,7 @@ const listId = `article-list-${Math.random().toString(36).slice(2)}`;
         <div class="article-row__footer">
           <div class="tags">
             {(article.tags || []).slice(0, 5).map((tag) => (
-              <a href={`${base}tags/${encodeURIComponent(tag)}/`}>{tag}</a>
+              <a href={`${base}tags/${tagPath(tag)}/`}>{tag}</a>
             ))}
           </div>
         </div>

@@ -1,12 +1,12 @@
 ---
 import ArticleList from "@/components/ArticleList.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { articlesByTag, getAllArticles, uniqueTags } from "@/lib/articles";
+import { articlesByTag, getAllArticles, tagPath, uniqueTags } from "@/lib/articles";
 
 export async function getStaticPaths() {
   const articles = await getAllArticles();
   return uniqueTags(articles).map((tag) => ({
-    params: { tag },
+    params: { tag: tagPath(tag) },
     props: { tag, articles: articlesByTag(articles, tag) },
   }));
 }

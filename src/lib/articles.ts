@@ -166,6 +166,14 @@ export function articlesByTag(articles: ArticleSummary[], tag: string): ArticleS
   return articles.filter((article) => article.tags?.includes(tag));
 }
 
+function segmentPath(value: string): string {
+  return encodeURIComponent(value).replaceAll("%", "~");
+}
+
+export function tagPath(tag: string): string {
+  return segmentPath(tag);
+}
+
 export function uniqueSources(articles: ArticleSummary[]): string[] {
   return Array.from(new Set(articles.map((article) => article.source).filter(Boolean))).sort(
     (a, b) => a.localeCompare(b, "zh-CN"),
@@ -177,5 +185,5 @@ export function articlesBySource(articles: ArticleSummary[], source: string): Ar
 }
 
 export function sourcePath(source: string): string {
-  return encodeURIComponent(source);
+  return segmentPath(source);
 }
